@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 class konto:
     """Object for storing multiple accounts summarised together. Useful for visualising an individual's cashflow across multiple accounts.
@@ -14,6 +15,9 @@ class konto:
 
         # Concatenate data from all listed accounts.
         self.data = pd.concat([acc.data for acc in account_list]).sort_values('Date')
+
+        # Note whether or not the data has been tagged so far.
+        self.data_tagged = np.all([lambda acc: acc.data_tagged for acc in self.account_list])
 
     def resample(self, frequency = 'M'):
         """Resample the data using the given frequency.
@@ -54,8 +58,18 @@ class konto:
         elif not(isinstance(frequency, str)):
             raise TypeError('frequency must be a string representing a timecode.')
         elif not(self.data_tagged):
-            raise TagError('data has not yet been tagged. Please tag before using TagResample.')
+            raise TagError('data has not yet been tagged. Please tag all constituent accounts before using TagResample.')
 
         self.last_resample = self.data[self.data['Tags'].apply(lambda tlist: set(list_of_tags).issubset(set(tlist)))].resample(frequency)['Value']
 
         return self.last_resample
+
+    def save(self, file_name):
+        """Save the konto to a file so that it can be accessed again later.
+
+        Arguments:
+            file_name: str
+                File name to write to.
+        """
+        with open(file_name, 'wb') as file:
+            pickle.dump(self, file)
