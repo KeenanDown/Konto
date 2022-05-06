@@ -3,7 +3,7 @@ import pandas as pd
 class account:
     """Object for storing an account.
 
-    Attributes:
+    Arguments:
         file: str.
             The .csv file used to import the account data.
         from_date: str
