@@ -1,4 +1,6 @@
 import pandas as pd
+import pickle
+import json
 
 class account:
     """Object for storing an account.
@@ -36,12 +38,14 @@ class account:
             print("to_date couldn't parse. Try using a string YYYY-MM-DD.")
 
         # Get the DataFrame from the
-        self.data = pd.read_csv(file, names = format, parse_dates = ['Date'], dayfirst = day_first)
+        self.data = pd.read_csv(file, parse_dates = ['Date'], dayfirst = day_first)
+        self.data.columns = format
 
         # Initialise the datetime index.
         self.data.set_index('Date', inplace = True)
 
         # Make sure data types in the frame are correct.
+        self.data['Value'] = self.data['Value'].astype('str')
         self.data['Value'] = self.data['Value'].str.replace(',','')
         self.data = self.data.astype({'Reference': 'str', 'Value': 'float64'})
 
@@ -159,3 +163,59 @@ class account:
         self.last_resample = self.data[self.data['Tags'].apply(lambda tlist: set(list_of_tags).issubset(set(tlist)))].resample(frequency)['Value']
 
         return self.last_resample
+
+    def save(self, file_name):
+        """Save the account to a file so that it can be accessed again later.
+
+        Arguments:
+            file_name: str
+                File name to write to.
+        """
+        with open(file_name, 'wb') as file:
+            pickle.dump(self, file)
+
+### IMPORTING AND EXPORTING TAGS
+
+    def export_tags(self, file_name):
+        """Export the non-value tag dictionary to a .json.
+
+        Arguments:
+            file_name: str
+                File name to write to.
+        """
+        with open(file_name, 'wt') as file:
+            json.dump(self.tagdict, file)
+
+    def export_value_tags(self, file_name):
+        """Export the value tag dictionary to a .json.
+
+        Arguments:
+            file_name: str
+                File name to write to.
+        """
+        with open(file_name, 'wt') as file:
+            json.dump(self.tagdict_on_price, file)
+
+    def import_tags(self, file_name):
+        """Import the non-value tag dictionary from a .json to the local tagging dictionary.
+
+        Warning: will not automatically update tagging, use Account.tag() to do this.
+
+        Arguments:
+            file_name: str
+                File name (json) to read from.
+        """
+        with open(file_name, 'rt') as file:
+            self.tagdict = json.load(file)
+
+    def import_value_tags(self, file_name):
+        """Import the value tag dictionary from a .json to the local tagging dictionary.
+
+        Warning: will not automatically update tagging, use Account.tag() to do this.
+
+        Arguments:
+            file_name: str
+                File name (json) to read from.
+        """
+        with open(file_name, 'rt') as file:
+            self.tagdict_on_price = json.load(file)
