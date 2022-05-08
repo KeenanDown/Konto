@@ -12,6 +12,8 @@ class account:
             The date on which the account begins. (YYYY-MM-DD)
         to_date: str
             The date when the account ends. (YYYY-MM-DD)
+        val_at_open: float64
+            The value of the account at the beginning of from_date.
 
     Optional arguments:
         format: list = ['Date', 'Reference', 'Value']
@@ -22,10 +24,13 @@ class account:
         eval_on_value: list = []
             A list of references which should be tagged according to both rerence and value, not just reference. E.g. payments to paypal might fall under different categories and the price will be used to infer the tags.
     """
-    def __init__(self, file, from_date, to_date, format = ['Date', 'Reference', 'Value'], day_first = True, eval_on_value = []):
+    def __init__(self, file, from_date, to_date, val_at_open, format = ['Date', 'Reference', 'Value'], day_first = True, eval_on_value = []):
         # Error checking and importing
         if not(isinstance(file, str)):
             raise TypeError('file should be of type str.')
+
+        if not(isinstance(val_at_open, float64)):
+            raise TypeError('val_at_open should be a float64.')
 
         try:
             self.from_date = pd.to_datetime(from_date)
@@ -58,6 +63,10 @@ class account:
 
         # Has the data been tagged?
         self.data_tagged = False
+
+        # Save the value at opening.
+        self.val_at_open = val_at_open
+        self.value = self.val_at_open + self.data['Value'].sum()
 
     # Explain how to print the data.
     def __str__(self):

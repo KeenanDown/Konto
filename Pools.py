@@ -19,6 +19,9 @@ class konto:
         # Note whether or not the data has been tagged so far.
         self.data_tagged = np.all([lambda acc: acc.data_tagged for acc in self.account_list])
 
+        # Update the current konto value.
+        self.value = sum([acc.value for acc in self.account_list])
+
     def resample(self, frequency = 'M'):
         """Resample the data using the given frequency.
 
