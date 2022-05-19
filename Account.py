@@ -29,8 +29,8 @@ class account:
         if not(isinstance(file, str)):
             raise TypeError('file should be of type str.')
 
-        if not(isinstance(val_at_open, float64)):
-            raise TypeError('val_at_open should be a float64.')
+        if not(isinstance(val_at_open, float)):
+            raise TypeError('val_at_open should be a float.')
 
         try:
             self.from_date = pd.to_datetime(from_date)
@@ -38,13 +38,12 @@ class account:
             print("from_date couldn't parse. Try using a string YYYY-MM-DD.")
 
         try:
-            self.from_date = pd.to_datetime(from_date)
+            self.to_date = pd.to_datetime(to_date)
         except TypeError:
             print("to_date couldn't parse. Try using a string YYYY-MM-DD.")
 
         # Get the DataFrame from the
-        self.data = pd.read_csv(file, parse_dates = ['Date'], dayfirst = day_first)
-        self.data.columns = format
+        self.data = pd.read_csv(file, parse_dates = ['Date'], dayfirst = day_first, names = format)
 
         # Initialise the datetime index.
         self.data.set_index('Date', inplace = True)
@@ -228,3 +227,68 @@ class account:
         """
         with open(file_name, 'rt') as file:
             self.tagdict_on_price = json.load(file)
+
+    def endow(self, file, from_date, to_date, val_at_open, format = ['Date', 'Reference', 'Value'], day_first = True, eval_on_value = []):
+        """Add additional data to an account without doubling transaction data. Fills in additional data where overlapping time occurs. Used to add more data to the beginning or end of an account.
+
+        Arguments:
+            file: str
+                The file (.csv) to read from.
+            from_date: str
+                The date YYYY-MM-DD from which the additional data begins.
+            end_date: str
+                The date YYYY-MM-DD where the additional data ends.
+            val_at_open: float
+                The value of the account at from_date.
+            format: list
+                A list of column names used in the (.csv). Columns labelled 'Date', 'Reference', and 'Value' will be used to parse the account.
+            day_first: bool
+                Whether or not the dates given are day first.
+            eval_on_value: list
+                A list of strings, the references where every new value of the payment should be individually categorised.
+
+        Returns:
+            account, updated with new data.
+        """
+        # Input handling.
+        if not(isinstance(file, str)):
+            raise TypeError('file should be of type str.')
+
+        if not(isinstance(val_at_open, float)):
+            raise TypeError('val_at_open should be a float.')
+
+        if not(isinstance(from_date, str)) or not(isinstance(to_date, str)):
+            raise TypeError('from_date and to_date must be strings.')
+
+        if not(isinstance(format, list)):
+            raise TypeError('format should be a list of column names.')
+
+        if not(isinstance(day_first, bool)):
+            raise TypeError('day_first should be of type bool.')
+
+        if not(isinstance(eval_on_value, list)):
+            raise TypeError('eval_on_value should be of type list.')
+
+        # Parse the from_date and to_date as dates.
+        try:
+            new_from_date = pd.to_datetime(from_date, dayfirst = day_first)
+        except TypeError:
+            print("from_date couldn't parse. Try using a string YYYY-MM-DD.")
+        try:
+            new_to_date = pd.to_datetime(to_date, dayfirst = day_first)
+        except TypeError:
+            print("to_date couldn't parse. Try using a string YYYY-MM-DD.")
+
+        # Check that the dates align enough that there are no gaps.
+        if new_from_date > self.to_date:
+            raise ValueError("New from_date must be older or the same as old to_date.")
+        elif new_to_date < self.from_date:
+            raise ValueError("New to_date must be later or the same as the old from_date.")
+
+        # E.g. 1 2 3 4.endow 6 7 8 9 won't work. Must be 1 2 3 4 + 4 5 6 = 1 2 3 4 5 6
+
+        # Import the data.
+        new_data = pd.read_csv(file, parse_dates = ['Date'], dayfirst = day_first, names = format)
+
+        # Join with the old data without repeats on days.
+        self.data = pd.concat([self.data, new_data[[date not in self.data.index.values for date in new_data.index.values]]])
